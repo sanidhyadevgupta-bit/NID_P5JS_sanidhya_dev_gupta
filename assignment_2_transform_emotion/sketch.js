@@ -1,10 +1,42 @@
+let rectSize=0;
+let sizeInc=5;
+let a = 0;m = 0
+
+
+function curtain(){        //function to draw curtain animation
+fill(0);
+  rect(0,0,1063,rectSize);
+  if(rectSize<=1063){
+  rectSize=rectSize+sizeInc;  
+  }
+}
+function drawPeace(){   //function to draw the peace animation
+
+stroke(255);  noFill();
+translate(width / 2, height / 2);
+ a += 1;       
+for (let g = 0; g < 12; g++) {
+for (let i = 0; i < 360; i += 60) {
+let nx = 150 * sin(g * 5 + i - a);
+let ny = 150 * cos(g * 5 + i - a);
+m=75*sin(g*5+frameCount)
+fill(mouseX,mouseY,0)
+circle(nx, ny, m);
+}}
+}
 function setup() {
   createCanvas(1063, 1063);
   background(0);
+  angleMode(DEGREES);
+
+  
 }
 
 function draw() {
   
+  
+  let ms = millis();
+ if(ms>0 && ms<5000){
   fill((40, 43, 46));
   triangle(0,0,104,0,0,319);
   triangle(16,283,0,490,185,400);
@@ -23,7 +55,7 @@ function draw() {
   triangle(608,864,598,1063,933,1063);
   triangle(541,813,807,655,800,970);
   fill((40, 43, 46));
-  triangle(814,571,805,962,1200,763); 
+  triangle(814,571,805,962,1200,763);
   triangle(807,973,1063,840,1100,1150);
   triangle(815,563,1063,424,1063,690);
   triangle(830,418,930,488,816,550);
@@ -80,7 +112,6 @@ function draw() {
   triangle(520,708,509,728,530,728);
   triangle(523,697,545,728,561,694);
   triangle(567,697,584,715,558,724);
-
   triangle(588,682,615,693,590,712);
   triangle(406,0,549,0,425,249);
   triangle(577,2,615,35,562,219);
@@ -106,4 +137,10 @@ function draw() {
   triangle(284,80,350,80,314,138);
   triangle(267,80,238,145,305,141);
   triangle(142,345,190,316,201,373);
+  curtain();
+ }
+  else if(ms>5000){
+   drawPeace();
+  }
 }
+ 
