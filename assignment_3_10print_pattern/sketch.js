@@ -3,6 +3,7 @@ let size = 20;
 let fontGraphics;
 
 function setup() {
+  frameRate(10);
   createCanvas(innerWidth, innerHeight);
   cols = width / size;
   rows = height / size;
@@ -11,10 +12,10 @@ function setup() {
   fontGraphics = createGraphics(width, height);
   fontGraphics.pixelDensity(1);
   fontGraphics.background(0);
-  fontGraphics.textSize(180);
+  fontGraphics.textSize(200);
   fontGraphics.textAlign(CENTER, CENTER);
   fontGraphics.fill(255);
-  fontGraphics.text("CATS ARE WHAT", width / 2, height / 2);
+  fontGraphics.text("SANIDHYA", width / 2, height / 2);
   fontGraphics.loadPixels();
   
   background(0);
