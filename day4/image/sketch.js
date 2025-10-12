@@ -3,7 +3,7 @@ let genImages=[];
 
 function preload(){
   for(i=0;i<4;i++){
-    let name="images/g"+i+".png";
+    let name="images/s"+i+".png";
     genImages[i]=loadImage(name);
   }
   /*
