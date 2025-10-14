@@ -1,5 +1,5 @@
 class Flower {
-  constructor(x, y, numPetals = 6) {
+  constructor(x, y, numPetals ) {
     this.x = x;
     this.y = y;
 
