@@ -117,6 +117,7 @@ function drawBeginScreen() {
     fill(255);
     textSize(height * 0.025);
     text(eras[i].name, thumbX + thumbWidth / 2, thumbnailsBottom + 20);
+   
   }
 
   // Ground rectangle (same as Era pages)
@@ -142,6 +143,8 @@ function drawBeginScreen() {
     humanX -= humanSpeed;
     if (humanX < 0) humanX = 0;
   }
+
+  
 
   // Animate human
   frameCountForAnim++;
