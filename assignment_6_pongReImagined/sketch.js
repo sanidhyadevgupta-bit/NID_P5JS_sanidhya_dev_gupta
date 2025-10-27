@@ -1,16 +1,19 @@
+// sketch.js
+// SYNERGY Pong with Start Screen (rainbow layered triangle + "press any key to proceed")
+
 let ball;
 let leftPaddle, rightPaddle;
 let pg; // Offscreen graphics for painting
-let hitCount = 0; // Tracks successful paddle hits
-const hitTarget = 30; // Hits needed to ACHIEVE
-let achievementAlpha = 0; // For smooth fade
+let hitCount = 0;
+const hitTarget = 30;
+let achievementAlpha = 0;
 
-// Sounds
-let bgScore, hitSound;
+let bgScore, hitSound; // sounds
+let started = false; // whether we've proceeded past the start screen
 
 function preload() {
   soundFormats('mp3', 'wav');
-  bgScore = loadSound('bgScore.mp3');
+  bgScore = loadSound('bgScore.mp3'); // make sure file is present
   hitSound = loadSound('hit.wav');
 }
 
@@ -18,24 +21,37 @@ function setup() {
   createCanvas(window.innerWidth, window.innerHeight);
   noStroke();
 
+  // create offscreen painting buffer (game uses this)
   pg = createGraphics(window.innerWidth, window.innerHeight);
   pg.background(0);
 
+  // paddles and ball (initialized now but game won't run until started)
   leftPaddle = new Paddle(50, height / 2 - 60, 20, 120, "left");
   rightPaddle = new Paddle(width - 70, height / 2 - 60, 20, 120, "right");
   ball = new Ball();
 
   textAlign(CENTER, CENTER);
   textFont('Arial Black');
-
-  // Loop background music at low volume
-  bgScore.loop();
-  bgScore.setVolume(0.3);
 }
 
 function draw() {
+  background(0);
+
+  if (!started) {
+    drawStartScreen();
+    return; // skip the game draw until user presses a key
+  }
+
+  // once started, ensure music is playing (some browsers require user gesture)
+  if (bgScore && !bgScore.isPlaying()) {
+    bgScore.loop();
+    bgScore.setVolume(0.3);
+  }
+
+  // Game: show painting buffer
   image(pg, 0, 0);
 
+  // Update/draw paddles and ball
   leftPaddle.update();
   rightPaddle.update();
   leftPaddle.display();
@@ -50,12 +66,12 @@ function draw() {
   // Foreground SYNERGY text
   push();
   noStroke();
-  fill(255, 200); // Reduced alpha
+  fill(255, 200);
   textSize(width / 6);
   text("SYNERGY", width / 2, height / 2);
   pop();
 
-  // Central dynamic text
+  // Central dynamic text (LOST / Hits / ACHIEVED)
   let displayText = "";
   let targetAlpha = 0;
 
@@ -74,7 +90,7 @@ function draw() {
 
   if (achievementAlpha > 1) {
     push();
-    textSize(width / 80);
+    textSize(width / 40);
     fill(
       displayText === "ACHIEVED" ? color(0, 255, 0, achievementAlpha)
       : displayText === "LOST" ? color(255, 0, 0, achievementAlpha)
@@ -85,14 +101,110 @@ function draw() {
   }
 }
 
+// Draw the start screen: rainbow layered triangle behind SYNERGY headline
+function drawStartScreen() {
+  // black background
+  background(0);
+
+  // parameters
+  const cx = width / 2;
+  const cy = height / 2 - height * 0.05; // a little up so "press any key" sits below
+  const triSize = min(width, height) * 0.55;
+  const layers = 18; // number of rainbow layers
+  colorMode(HSB, 360, 100, 100, 100);
+
+  // Draw layered rainbow triangle (back to front)
+  for (let i = layers - 1; i >= 0; i--) {
+    let t = i / (layers - 1); // 0..1
+    // hue across rainbow (red -> violet)
+    let hue = lerp(0, 280, t); // hue in degrees
+    // size shrinks towards front
+    let s = triSize * (0.7 + 0.3 * (i / layers));
+    // alpha slightly translucent so text shows through
+    let alpha = map(i, 0, layers - 1, 30, 90);
+
+    fill(hue, 90, 100, alpha);
+    noStroke();
+
+    // equilateral triangle centered at (cx, cy)
+    // compute three vertices
+    let h = s * (Math.sqrt(3) / 2); // height of equilateral triangle
+    let x1 = cx;
+    let y1 = cy - (2 / 3) * h; // top vertex
+    let x2 = cx - s / 2;
+    let y2 = cy + (1 / 3) * h;
+    let x3 = cx + s / 2;
+    let y3 = cy + (1 / 3) * h;
+
+    triangle(x1, y1, x2, y2, x3, y3);
+  }
+
+  colorMode(RGB);
+
+  // Foreground SYNERGY (large)
+  push();
+  textAlign(CENTER, CENTER);
+  textSize(min(width, height) / 6);
+  fill(255, 230);
+  noStroke();
+  text("SYNERGY", cx, cy - (min(width, height) * 0.02));
+  pop();
+
+  // "press any key to proceed" below
+  push();
+  textSize(min(width, height) / 30);
+  fill(255, 180);
+  text("press any key to proceed", cx, cy + min(width, height) * 0.25);
+  pop();
+
+  // small hint: show controls lightly
+  push();
+  textSize(min(width, height) / 60);
+  fill(255, 120);
+  text("W / S  — left paddle   |   ↑ / ↓  — right paddle", cx, height - 40);
+  pop();
+}
+
+// start the game when user presses any key
+function keyPressed() {
+  if (!started) {
+    started = true;
+
+    // clear the painting buffer so game starts fresh (optional)
+    pg = createGraphics(window.innerWidth, window.innerHeight);
+    pg.background(0);
+
+    // start background music (user gesture allowed)
+    if (bgScore && !bgScore.isPlaying()) {
+      bgScore.loop();
+      bgScore.setVolume(0.3);
+    }
+    return;
+  }
+
+  // pass keystroke to game controls as usual (handled by keyIsDown in update)
+}
+
+// window resize: keep painting by scaling old art into new buffer
 function windowResized() {
-  let oldArt = pg.get();
+  // if game not started just resize canvas
   resizeCanvas(window.innerWidth, window.innerHeight);
+
+  if (!started) return;
+
+  // Save and rescale previous painting to new pg
+  let oldArt = pg.get();
   pg = createGraphics(window.innerWidth, window.innerHeight);
   pg.image(oldArt, 0, 0, window.innerWidth, window.innerHeight);
+
+  // reposition paddles x positions
   leftPaddle.x = 50;
   rightPaddle.x = width - 70;
 }
+
+/* -------------------------
+   Game classes (unchanged)
+   -------------------------*/
 
 class Ball {
   constructor() {
@@ -120,31 +232,37 @@ class Ball {
   move() {
     this.x += this.xSpeed;
     this.y += this.ySpeed;
-
-    if (this.x > 200 && this.x < width - 200) {
-      this.justHit = false;
-    }
+    if (this.x > 200 && this.x < width - 200) this.justHit = false;
   }
 
   display(g) {
+    // Paint on the offscreen buffer
     g.noStroke();
-    g.fill(this.col);
+    g.fill(red(this.col), green(this.col), blue(this.col), 200);
     g.ellipse(this.x, this.y, this.size);
 
+    // Draw main visible ball
     push();
-    noFill();
-    let outlineCol = color(255 - red(this.col), 255 - green(this.col), 255 - blue(this.col));
+    translate(this.x, this.y);
+
+    // Fill color
+    fill(this.col);
+
+    // More prominent outline
+    let outlineCol = color(
+      255 - red(this.col),
+      255 - green(this.col),
+      255 - blue(this.col)
+    );
     stroke(outlineCol);
-    strokeWeight(2);
-    ellipse(this.x, this.y, this.size + 2);
+    strokeWeight(6);
+    ellipse(0, 0, this.size);
+
     pop();
   }
 
   checkEdges() {
-    if (this.y < 0 || this.y > height) {
-      this.ySpeed *= -1;
-    }
-
+    if (this.y < 0 || this.y > height) this.ySpeed *= -1;
     if (this.x < 0 || this.x > width) {
       this.reset();
       this.col = color(random(255), random(255), random(255));
@@ -164,28 +282,27 @@ class Ball {
       this.ySpeed += random(-1, 1);
       this.size = constrain(this.size + 2, 10, 150);
 
-      // BOTH paddles grow
+      // Both paddles grow and speed up
       leftPaddle.h = constrain(leftPaddle.h + 10, 50, height * 0.8);
       rightPaddle.h = constrain(rightPaddle.h + 10, 50, height * 0.8);
-
-      // Increase paddle speed by 5% each hit
       leftPaddle.speed *= 1.05;
       rightPaddle.speed *= 1.05;
 
-      // Play hit sound
-      hitSound.play();
+      if (hitSound && started) hitSound.play();
 
       this.justHit = true;
       hitCount++;
       this.lost = false;
 
-      // Slightly increase ball speed
+      // Ball speeds up a bit
       let speedMultiplier = 1.05;
       this.xSpeed *= speedMultiplier;
       this.ySpeed *= speedMultiplier;
     }
   }
 }
+
+
 
 class Paddle {
   constructor(x, y, w, h, side) {
