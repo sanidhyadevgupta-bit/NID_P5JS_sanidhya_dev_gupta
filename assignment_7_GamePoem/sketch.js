@@ -1,49 +1,63 @@
 // ------------------ Diwali Interactive Experience ------------------
-// Return to Light — FULL VERSION with diya light animation
-// Scenes: 0 Home, 1 Departure, 2 Flight, 3 Arrival, 4 Celebration, 5 Reflection, 6 Awakening
-// -------------------------------------------------------------------
+// FINAL — Fireworks visible in Diya scene + col fix + strong trails
+// --------------------------------------------------------------------
 
 let scene = 0;
 
-// Layout
+let taxiImg, cloudImg, airplaneImg, houseImg;
+let planeRatio = 0;
+
 let layout = {};
+
 let skyline = [];
 let clouds = [];
 let windowsArr = [];
 let diyas = [];
 let fireworks = [];
 
-// Taxi
-let taxiLight = 0;
-
-// Reflection
-let stars = [];
-let fireflies = [];
-let windParticles = [];
-let parallax = { x: 0, targetX: 0 };
 let inactivity = 0;
 
-// Awakening
+let stars = [];
+let fireflies = [];
+
 let fanAngle = 0;
 let fanSpeed = 0.03;
-let fanShake = 0;
-let dust = [];
 let flashAlpha = 0;
+
+// ------------------ Preload ------------------
+function preload() {
+  taxiImg = loadImage("car.png");
+  cloudImg = loadImage("cloud.png");
+  airplaneImg = loadImage("airplane.png", () => {
+    planeRatio = airplaneImg.height / airplaneImg.width;
+  });
+  houseImg = loadImage("house.png");
+}
 
 // ------------------ Setup ------------------
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  pixelDensity(1);
+
+  let canvas = createCanvas(windowWidth, windowHeight);
+  canvas.style("width", windowWidth + "px");
+  canvas.style("height", windowHeight + "px");
+
+  canvas.elt.style.pointerEvents = "auto";
+  canvas.elt.style.position = "relative";
+  canvas.elt.style.zIndex = "9999";
+
+  imageMode(CENTER);
   rectMode(CENTER);
   textAlign(CENTER, CENTER);
   textFont("Georgia");
-  noStroke();
+
   computeLayout();
   initSceneAssets();
 }
 
-// ------------------ Main Draw ------------------
+// ------------------ Draw ------------------
 function draw() {
-  background(0);
+  if (scene !== 2 && scene !== 4) fireworks = [];
 
   switch (scene) {
     case 0: drawHome(); break;
@@ -76,85 +90,61 @@ function drawDeparture() {
   verticalGradient(color(15, 15, 40), color(10, 10, 30));
 
   fill(25, 25, 60);
-  for (const b of skyline) rect(b.x, b.y, b.w, b.h);
+  for (let b of skyline) rect(b.x, b.y, b.w, b.h);
 
   fill(40);
   rect(width / 2, layout.roadY, width, layout.roadH);
 
   fill(255, 210);
-  for (let x = layout.marginX; x < width - layout.marginX; x += 100) {
+  for (let x = layout.marginX; x < width - layout.marginX; x += 100)
     rect(x, layout.roadY, 60, 6);
-  }
 
-  layout.taxiSpeed += layout.taxiAccel;
-  layout.taxiX += layout.taxiSpeed;
+  if (keyIsDown(RIGHT_ARROW)) layout.taxiX += layout.taxiSpeed;
 
-  const tx = layout.taxiX;
-  const ty = layout.taxiY;
-
-  fill(255, 220, 0);
-  rect(tx, ty, layout.taxiW, layout.taxiH, 10);
-
-  fill(0);
-  ellipse(tx - layout.taxiW * 0.25, ty + layout.taxiH * 0.2, layout.wheelD);
-  ellipse(tx + layout.taxiW * 0.25, ty + layout.taxiH * 0.2, layout.wheelD);
-
-  if (taxiLight > 0) {
-    fill(255, 255, 160, taxiLight);
-    ellipse(tx + layout.taxiW * 0.4, ty, layout.taxiW * 0.7, layout.taxiH * 0.6);
-    taxiLight -= 10;
-  }
+  image(taxiImg, layout.taxiX, layout.taxiY, layout.taxiW, layout.taxiH);
 
   if (layout.taxiX > width + layout.taxiW) scene = 2;
 
-  bodyText("“The city hums beneath tired stars —\nI carry a suitcase full of light.”", width / 2, height * 0.25);
+  bodyText("Use → to drive forward", width / 2, height * 0.18);
+  bodyText("“The city hums beneath tired stars —\nI carry a suitcase full of light.”",
+    width / 2, height * 0.25);
 }
 
 // ------------------ Scene 2 ------------------
 function drawFlight() {
   verticalGradient(color(20, 20, 60), color(100, 60, 150));
 
-  fill(255, 220);
-  const t = frameCount * 0.01;
+  for (let c of clouds) {
+    c.x -= c.speed;
+    c.y += c.drift * 0.4;
 
-  for (const c of clouds) {
-    const x = (c.baseX + sin(t + c.phase) * c.amp) % width;
-    const y = c.baseY + sin(t * 0.6 + c.phase) * 12;
-    ellipse(x, y, c.w, c.h);
+    if (c.y < height * 0.1) c.drift = abs(c.drift);
+    if (c.y > height * 0.55) c.drift = -abs(c.drift);
+
+    image(cloudImg, c.x, c.y, c.w, c.h);
   }
 
-  fill(230);
-  ellipse(width / 2, height / 2, layout.planeW, layout.planeH);
+  clouds = clouds.filter((c) => c.x > -c.w);
+  while (clouds.length < 12) {
+    clouds.push({
+      x: width + random(100, 300),
+      y: random(height * 0.15, height * 0.55),
+      w: random(width * 0.15, width * 0.25),
+      h: random(height * 0.07, height * 0.12),
+      speed: random(1, 3),
+      drift: random(-0.4, 0.4),
+    });
+  }
+
+  let planeW = width * 0.4;
+  let planeH = planeW * planeRatio;
+  image(airplaneImg, width / 2, height / 2, planeW, planeH);
 
   for (let f of fireworks) f.update();
-  fireworks = fireworks.filter(f => !f.done);
+  fireworks = fireworks.filter((f) => !f.done);
 
-  bodyText("“Above the clouds, fireworks bloom like forgotten prayers.”", width / 2, height * 0.85);
-}
-
-class Firework {
-  constructor(x, y, col) {
-    this.ps = [];
-    for (let i = 0; i < 60; i++) {
-      this.ps.push({
-        pos: createVector(x, y),
-        vel: p5.Vector.random2D().mult(random(1, 4)),
-        col,
-        a: 255,
-      });
-    }
-    this.done = false;
-  }
-  update() {
-    for (let p of this.ps) {
-      p.pos.add(p.vel);
-      p.vel.mult(0.95);
-      p.a -= 4;
-      fill(red(p.col), green(p.col), blue(p.col), p.a);
-      ellipse(p.pos.x, p.pos.y, 4);
-    }
-    this.done = this.ps.every(p => p.a < 0);
-  }
+  bodyText("“Above the clouds, fireworks bloom like forgotten prayers.”",
+    width / 2, height * 0.85);
 }
 
 // ------------------ Scene 3 ------------------
@@ -164,75 +154,113 @@ function drawArrival() {
   fill(35);
   rect(width / 2, height * 0.7, width, height * 0.3);
 
-  for (const h of windowsArr) {
-    fill(110, 75, 45);
-    rect(h.x, h.y - h.h / 2, h.w, h.h);
-
-    fill(90, 55, 35);
-    triangle(h.x - h.w / 2, h.y - h.h,
-      h.x, h.y - h.h - h.roofH,
-      h.x + h.w / 2, h.y - h.h);
-
+  for (let h of windowsArr) {
     fill(h.on ? color(255, 220, 80) : color(30));
-    rect(h.x, h.y - h.h / 2, h.win, h.win, 4);
+    rect(h.x, h.y, h.win, h.win, 6);
+    image(houseImg, h.x, h.y, h.w, h.h);
   }
 
-  bodyText("“Each home remembers — each lamp a story retold in flame.”", width / 2, height * 0.25);
+  bodyText("“Each home remembers — each lamp a story retold in flame.”",
+    width / 2, height * 0.25);
   captionText("Click windows to light them", width / 2, height * 0.3);
 }
 
-// ------------------ Scene 4 (Celebration) with Animation ------------------
+// ------------------ Scene 4 ------------------
 function drawCelebration() {
   verticalGradient(color(10, 5, 30), color(20, 10, 50));
 
   fill(30);
   rect(width / 2, height * 0.82, width, height * 0.36);
 
-  const now = millis();
+  // Fireworks behind diyas
+  for (let f of fireworks) f.update();
+  fireworks = fireworks.filter((f) => !f.done);
 
-  for (let i = 0; i < diyas.length; i++) {
-    let d = diyas[i];
+  let now = millis();
 
-    if (d.animStart > 0) {
-      let t = (now - d.animStart) / 800;  // 0 to 1 over 0.8s
-
-      t = constrain(t, 0, 1);
-
-      d.brightness = lerp(0, 255, easeOutQuad(t));
-
-      for (let s of d.spark) {
-        s.y -= s.vy;
-        s.vy *= 0.97;
-        fill(255, 200 + sin(frameCount * 0.2) * 50, 100, s.a);
-        ellipse(s.x, s.y, 4, 4);
-        s.a -= 4;
-      }
-      d.spark = d.spark.filter(s => s.a > 0);
+  for (let d of diyas) {
+    if (d.lit) {
+      let t = (now - d.animStart) / 800;
+      d.brightness = lerp(d.brightness, 255, constrain(t, 0, 1));
+    } else {
+      d.brightness = lerp(d.brightness, 0, 0.08);
     }
-
-    drawDiyaAnimated(d.x, d.y, d.brightness);
+    drawDiya(d);
   }
 
-  bodyText("“In their faces I find the light I lost in distant cities.”", width / 2, height * 0.25);
-  captionText("Click anywhere to light all diyas", width / 2, height * 0.3);
+  bodyText("“In their faces I find the light I lost in distant cities.”",
+    width / 2, height * 0.25);
+  captionText("Click diyas to light them & launch fireworks",
+    width / 2, height * 0.3);
 }
 
-function drawDiyaAnimated(x, y, bright) {
-  fill(145, 85, 35);
-  ellipse(x, y, 50, 22);
+// ------------------ Code-drawn diya ------------------
+function drawDiya(d) {
+  push();
+  fill(145, 90, 40);
+  ellipse(d.x, d.y, 110, 48);
 
-  let flick = bright + random(-20, 20);
+  fill(255, 200, 100, d.brightness * 0.40);
+  ellipse(d.x, d.y - 10, 180, 100);
+
+  let flick = d.brightness + random(-40, 40);
   flick = constrain(flick, 0, 255);
 
-  fill(255, flick, 60);
-  triangle(x, y - 24, x - 10, y - 8, x + 10, y - 8);
+  fill(255, flick, 80);
+  beginShape();
+  vertex(d.x, d.y - 40);
+  bezierVertex(d.x - 15, d.y - 20, d.x - 5, d.y, d.x, d.y - 10);
+  bezierVertex(d.x + 5, d.y, d.x + 15, d.y - 20, d.x, d.y - 40);
+  endShape(CLOSE);
 
-  fill(255, 200, 100, bright * 0.3);
-  ellipse(x, y, 90, 34);
+  pop();
 }
 
-function easeOutQuad(t) {
-  return t * (2 - t);
+// ------------------ Firework ------------------
+class Firework {
+  constructor(x, y, col) {
+    this.particles = [];
+    for (let i = 0; i < 80; i++) {
+      let vel = p5.Vector.random2D().mult(random(2, 5));
+      this.particles.push({
+        pos: createVector(x, y),
+        prev: createVector(x, y),
+        vel: vel,
+        a: 255,
+        col: color(col) // ✅ FIXED
+      });
+    }
+    this.done = false;
+    this.gravity = 0.04;
+    this.friction = 0.985;
+  }
+
+  update() {
+    let allGone = true;
+
+    for (let p of this.particles) {
+      p.prev.set(p.pos);
+
+      p.vel.y += this.gravity;
+      p.vel.mult(this.friction);
+      p.pos.add(p.vel);
+
+      stroke(red(p.col), green(p.col), blue(p.col), p.a * 0.45);
+      strokeWeight(2.5);
+      line(p.prev.x, p.prev.y, p.pos.x, p.pos.y);
+
+      noStroke();
+      fill(red(p.col), green(p.col), blue(p.col), p.a);
+      ellipse(p.pos.x, p.pos.y, 6, 6);
+      fill(red(p.col), green(p.col), blue(p.col), p.a * 0.35);
+      ellipse(p.pos.x, p.pos.y, 13, 13);
+
+      p.a -= 3.2;
+      if (p.a > 0) allGone = false;
+    }
+
+    this.done = allGone;
+  }
 }
 
 // ------------------ Scene 5 ------------------
@@ -255,7 +283,8 @@ function drawReflection() {
     ellipse(f.x, f.y, 4, 4);
   }
 
-  bodyText("“The night whispers its light back to the stars.”", width / 2, height * 0.9);
+  bodyText("“The night whispers its light back to the stars.”",
+    width / 2, height * 0.9);
 }
 
 // ------------------ Scene 6 ------------------
@@ -274,9 +303,6 @@ function drawAwakening() {
     line(0, 0, layout.fanBlade, 0);
     rotate(HALF_PI);
   }
-  noStroke();
-  fill(80);
-  ellipse(0, 0, layout.fanHub);
   pop();
 
   fill(40);
@@ -294,40 +320,47 @@ function mousePressed() {
 
   if (scene === 0) scene = 1;
 
-  else if (scene === 1) taxiLight = 255;
+  else if (scene === 2) {
+    fireworks.push(new Firework(mouseX, mouseY,
+      color(random(200), random(200, 255), random(255))));
+  }
 
-  else if (scene === 2)
-    fireworks.push(new Firework(mouseX, mouseY, color(random(200), random(200, 255), random(255))));
-
-  else if (scene === 3)
+  else if (scene === 3) {
     for (let h of windowsArr)
-      if (isInside(mouseX, mouseY, h.x, h.y - h.h / 2, h.w, h.h))
+      if (isInside(mouseX, mouseY, h.x, h.y, h.w, h.h))
         h.on = !h.on;
+  }
 
   else if (scene === 4) {
-    let now = millis();
-    for (let i = 0; i < diyas.length; i++) {
-      let d = diyas[i];
-      d.animStart = now + i * 120;  // wave delay
-      d.brightness = 0;
-      d.spark = [];
-      for (let s = 0; s < 8; s++) {
-        d.spark.push({
-          x: d.x + random(-5, 5),
-          y: d.y - random(10, 20),
-          vy: random(1, 2),
-          a: 255
-        });
+    for (let d of diyas) {
+      if (
+        mouseX > d.x - 100 &&
+        mouseX < d.x + 100 &&
+        mouseY > d.y - 100 &&
+        mouseY < d.y + 100
+      ) {
+        d.lit = !d.lit;
+        d.animStart = millis();
+
+        fireworks.push(new Firework(mouseX, mouseY,
+          color(random(180, 255), random(180, 255), random(180, 255))));
+
+        let bursts = floor(random(3, 6));
+        for (let i = 0; i < bursts; i++) {
+          fireworks.push(
+            new Firework(
+              random(width),
+              random(height * 0.12, height * 0.45),
+              color(random(150, 255), random(150, 255), random(150, 255))
+            )
+          );
+        }
+        break;
       }
     }
   }
 
-  else if (scene === 6)
-    fanSpeed += 0.12;
-}
-
-function mouseDragged() {
-  if (scene === 6) fanSpeed += movedX * 0.0006;
+  else if (scene === 6) fanSpeed += 0.12;
 }
 
 function doubleClicked() {
@@ -338,13 +371,12 @@ function doubleClicked() {
 }
 
 function keyPressed() {
-  scene = (scene + 1) % 7;
+  if (key === " ") scene = (scene + 1) % 7;
 }
 
 // ------------------ Helpers ------------------
 function computeLayout() {
   layout.marginX = max(40, width * 0.06);
-  layout.marginY = max(40, height * 0.06);
 
   layout.titleSize = constrain(width / 18, 28, 64);
   layout.bodySize = constrain(width / 40, 16, 34);
@@ -354,60 +386,52 @@ function computeLayout() {
   layout.roadY = height * 0.82;
   layout.skylineBase = height * 0.62;
 
-  layout.taxiW = min(180, width * 0.2);
-  layout.taxiH = layout.taxiW * 0.35;
+  layout.taxiW = min(260, width * 0.32);
+  layout.taxiH = layout.taxiW * 0.55;
   layout.taxiX = -layout.taxiW * 2;
   layout.taxiY = layout.skylineBase + (layout.roadY - layout.skylineBase) * 0.35;
-  layout.taxiSpeed = width * 0.0022;
-  layout.taxiAccel = width * 0.000005;
-  layout.wheelD = layout.taxiH * 0.45;
-
-  layout.planeW = min(width * 0.25, 320);
-  layout.planeH = layout.planeW * 0.22;
+  layout.taxiSpeed = width * 0.008;
 
   layout.fanBlade = min(width, height) * 0.18;
-  layout.fanHub = layout.fanBlade * 0.22;
 }
 
 function initSceneAssets() {
   skyline = [];
   for (let i = 0; i < 12; i++) {
-    const w = width / 25;
-    const x = map(i, 0, 11, layout.marginX, width - layout.marginX);
-    const h = random(height * 0.14, height * 0.22);
+    let w = width / 25;
+    let x = map(i, 0, 11, layout.marginX, width - layout.marginX);
+    let h = random(height * 0.14, height * 0.22);
     skyline.push({ x, y: layout.skylineBase - h / 2, w, h });
   }
 
   clouds = [];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 12; i++) {
     clouds.push({
-      baseX: random(width),
-      baseY: height * (0.28 + 0.1 * (i % 3)),
-      w: width * 0.15,
-      h: height * 0.08,
-      phase: i,
-      amp: 40
+      x: random(width),
+      y: random(height * 0.15, height * 0.55),
+      w: random(width * 0.15, width * 0.25),
+      h: random(height * 0.07, height * 0.12),
+      speed: random(1, 3),
+      drift: random(-0.4, 0.4),
     });
   }
 
   windowsArr = [];
   for (let i = 0; i < 5; i++) {
-    const x = map(i, 0, 4, layout.marginX, width - layout.marginX);
-    const w = width * 0.12;
-    const h = w * 1.2;
-    windowsArr.push({ x, y: height * 0.62, w, h, roofH: h * 0.25, win: w * 0.35, on: false });
+    let x = map(i, 0, 4, layout.marginX, width - layout.marginX);
+    let w = width * 0.18;
+    let h = w * 0.9;
+    windowsArr.push({ x, y: height * 0.65, w, h, win: w * 0.25, on: false });
   }
 
   diyas = [];
   for (let i = 0; i < 7; i++) {
-    const x = map(i, 0, 6, layout.marginX, width - layout.marginX);
     diyas.push({
-      x,
-      y: height * 0.75,
-      lit: false,
+      x: map(i, 0, 6, layout.marginX, width - layout.marginX),
+      y: height * 0.82 - 40,
       brightness: 0,
       animStart: 0,
-      spark: []
+      lit: false,
     });
   }
 
@@ -418,7 +442,7 @@ function initSceneAssets() {
       y: random(height * 0.5),
       r: random(1, 2),
       twinkle: random(TWO_PI),
-      seed: random(1000)
+      seed: random(1000),
     });
   }
 
@@ -427,17 +451,7 @@ function initSceneAssets() {
     fireflies.push({
       x: random(width),
       y: random(height * 0.6, height * 0.9),
-      seed: random(1000)
-    });
-  }
-
-  dust = [];
-  for (let i = 0; i < 100; i++) {
-    dust.push({
-      x: random(width),
-      y: random(height),
-      vy: random(0.2, 0.5),
-      seed: random(1000)
+      seed: random(1000),
     });
   }
 }
@@ -455,36 +469,19 @@ function titleText(t, x, y) {
   textSize(layout.titleSize);
   text(t, x, y);
 }
-
 function bodyText(t, x, y, a = 255) {
   fill(255, a);
   textSize(layout.bodySize);
   text(t, x, y);
 }
-
 function captionText(t, x, y, a = 200) {
   fill(255, a);
   textSize(layout.captionSize);
   text(t, x, y);
 }
 
-function drawDiyaAnimated(x, y, bright) {
-  fill(145, 85, 35);
-  ellipse(x, y, 50, 22);
-
-  let flick = bright + random(-20, 20);
-  flick = constrain(flick, 0, 255);
-
-  fill(255, flick, 60);
-  triangle(x, y - 24, x - 10, y - 8, x + 10, y - 8);
-
-  fill(255, 200, 100, bright * 0.3);
-  ellipse(x, y, 90, 34);
-}
-
 function isInside(px, py, cx, cy, w, h) {
-  return px >= cx - w / 2 && px <= cx + w / 2 &&
-         py >= cy - h / 2 && py <= cy + h / 2;
+  return px >= cx - w / 2 && px <= cx + w / 2 && py >= cy - h / 2 && py <= cy + h / 2;
 }
 
 function windowResized() {
