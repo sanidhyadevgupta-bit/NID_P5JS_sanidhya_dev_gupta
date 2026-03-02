@@ -15,7 +15,7 @@ function setup() {
   fontGraphics.textSize(200);
   fontGraphics.textAlign(CENTER, CENTER);
   fontGraphics.fill(255);
-  fontGraphics.text("SANIDHYA", width / 2, height / 2);
+  fontGraphics.text("SCAM", width / 2, height / 2);
   fontGraphics.loadPixels();
   
   background(0);
